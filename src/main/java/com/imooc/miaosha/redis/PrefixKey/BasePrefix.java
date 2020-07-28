@@ -1,4 +1,4 @@
-package com.imooc.miaosha.redis;
+package com.imooc.miaosha.redis.PrefixKey;
 
 public abstract class BasePrefix implements KeyPrefix{
 	

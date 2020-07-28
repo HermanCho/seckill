@@ -10,7 +10,7 @@ import com.imooc.miaosha.dao.OrderDao;
 import com.imooc.miaosha.domain.MiaoshaOrder;
 import com.imooc.miaosha.domain.MiaoshaUser;
 import com.imooc.miaosha.domain.OrderInfo;
-import com.imooc.miaosha.redis.OrderKey;
+import com.imooc.miaosha.redis.PrefixKey.OrderKey;
 import com.imooc.miaosha.redis.RedisService;
 import com.imooc.miaosha.vo.GoodsVo;
 
@@ -46,6 +46,7 @@ public class OrderService {
 		orderInfo.setStatus(0);
 		orderInfo.setUserId(user.getId());
 		orderDao.insert(orderInfo);
+
 		MiaoshaOrder miaoshaOrder = new MiaoshaOrder();
 		miaoshaOrder.setGoodsId(goods.getId());
 		miaoshaOrder.setOrderId(orderInfo.getId());

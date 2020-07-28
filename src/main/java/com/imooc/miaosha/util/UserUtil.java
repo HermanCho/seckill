@@ -1,22 +1,15 @@
 package com.imooc.miaosha.util;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.RandomAccessFile;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.imooc.miaosha.domain.MiaoshaUser;
+
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class UserUtil {
 	
@@ -29,11 +22,12 @@ public class UserUtil {
 			user.setLoginCount(1);
 			user.setNickname("user"+i);
 			user.setRegisterDate(new Date());
-			user.setSalt("1a2b3c");
+//			user.setSalt("1a2b3c");
+			user.setSalt(MD5Util.generateRandomSalt());
 			user.setPassword(MD5Util.inputPassToDbPass("123456", user.getSalt()));
 			users.add(user);
 		}
-		System.out.println("create user");
+//		System.out.println("create user");
 //		//插入数据库
 //		Connection conn = DBUtil.getConn();
 //		String sql = "insert into miaosha_user(login_count, nickname, register_date, salt, password, id)values(?,?,?,?,?,?)";
@@ -51,7 +45,7 @@ public class UserUtil {
 //		pstmt.executeBatch();
 //		pstmt.close();
 //		conn.close();
-//		System.out.println("insert to db");
+//		System.out.println("插入数据完成");
 		//登录，生成token
 		String urlString = "http://localhost:8080/login/do_login";
 		File file = new File("D:/tokens.txt");
@@ -83,16 +77,16 @@ public class UserUtil {
 			String response = new String(bout.toByteArray());
 			JSONObject jo = JSON.parseObject(response);
 			String token = jo.getString("data");
-			System.out.println("create token : " + user.getId());
-			
+//			System.out.println("create token : " + user.getId());
+
 			String row = user.getId()+","+token;
 			raf.seek(raf.length());
 			raf.write(row.getBytes());
 			raf.write("\r\n".getBytes());
-			System.out.println("write to file : " + user.getId());
+//			System.out.println("write to file : " + user.getId());
 		}
 		raf.close();
-		
+
 		System.out.println("over");
 	}
 	

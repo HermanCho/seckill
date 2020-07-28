@@ -23,12 +23,16 @@ public class GoodsService {
 		return goodsDao.getGoodsVoByGoodsId(goodsId);
 	}
 
-	public boolean reduceStock(GoodsVo goods) {
+
+	public boolean reduceStockWithPessimisticLock(GoodsVo goods) {
 		MiaoshaGoods g = new MiaoshaGoods();
 		g.setGoodsId(goods.getId());
-		int ret = goodsDao.reduceStock(g);
+		int ret = goodsDao.reduceStockWithPessimisticLock(g);
 		return ret > 0;
 	}
+
+
+
 
 	public void resetStock(List<GoodsVo> goodsList) {
 		for(GoodsVo goods : goodsList ) {

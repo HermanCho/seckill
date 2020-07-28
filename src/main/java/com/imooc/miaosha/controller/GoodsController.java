@@ -1,10 +1,13 @@
 package com.imooc.miaosha.controller;
 
-import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.imooc.miaosha.domain.MiaoshaUser;
+import com.imooc.miaosha.redis.PrefixKey.GoodsKey;
+import com.imooc.miaosha.redis.RedisService;
+import com.imooc.miaosha.result.Result;
+import com.imooc.miaosha.service.GoodsService;
+import com.imooc.miaosha.service.MiaoshaUserService;
+import com.imooc.miaosha.vo.GoodsDetailVo;
+import com.imooc.miaosha.vo.GoodsVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -16,14 +19,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.thymeleaf.spring4.context.SpringWebContext;
 import org.thymeleaf.spring4.view.ThymeleafViewResolver;
 
-import com.imooc.miaosha.domain.MiaoshaUser;
-import com.imooc.miaosha.redis.GoodsKey;
-import com.imooc.miaosha.redis.RedisService;
-import com.imooc.miaosha.result.Result;
-import com.imooc.miaosha.service.GoodsService;
-import com.imooc.miaosha.service.MiaoshaUserService;
-import com.imooc.miaosha.vo.GoodsDetailVo;
-import com.imooc.miaosha.vo.GoodsVo;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 @Controller
 @RequestMapping("/goods")
