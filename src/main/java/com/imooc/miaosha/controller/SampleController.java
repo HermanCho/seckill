@@ -54,12 +54,12 @@ public class SampleController {
     @RequestMapping("/mq2")
     @ResponseBody
     public Result<String> mq2() {
-        MiaoshaMessage mm = new MiaoshaMessage();
-        mm.setGoodsId(122);
-        MiaoshaUser miaoshaUser = new MiaoshaUser();
-        miaoshaUser.setId(3L);
-        mm.setUser(miaoshaUser);
-//        sender.sendStrMessage("aa");
+//        MiaoshaMessage mm = new MiaoshaMessage();
+//        mm.setGoodsId(122);
+//        MiaoshaUser miaoshaUser = new MiaoshaUser();
+//        miaoshaUser.setId(3L);
+//        mm.setUser(miaoshaUser);
+        sender.sendStrMessage("aa");
         return Result.success("Hello，world");
     }
 

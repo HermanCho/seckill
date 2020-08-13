@@ -57,13 +57,15 @@ public class MQReceiver {
      * @return: void
      **/
 
-//    @RabbitListener(queues = MQConfig.DEAD_MSG_QUEUE)
+    @RabbitListener(queues = MQConfig.DEAD_MSG_QUEUE)
     @RabbitHandler
     public void receiveDeadMsg(String msg, Channel channel, Message messages) throws Exception {
         System.out.println("收到消息:   " + msg);
         try {
             MessageProperties messageProperties = messages.getMessageProperties();
-            channel.basicAck(messages.getMessageProperties().getDeliveryTag(), false);
+            System.out.println(messageProperties.getDeliveryTag());
+            System.out.println(messageProperties.toString());
+//            channel.basicAck(messages.getMessageProperties().getDeliveryTag(), false);
         } catch (Exception e) {
             channel.basicNack(messages.getMessageProperties().getDeliveryTag(), false, false);
         }

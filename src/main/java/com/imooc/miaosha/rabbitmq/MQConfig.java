@@ -164,6 +164,7 @@ public class MQConfig {
         RabbitTemplate.ReturnCallback returnCallback = new RabbitTemplate.ReturnCallback() {
             @Override
             public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
+
                 log.error("触发returnCallBack");
 //                log.info("message:" + message.toString());
 //                log.info("replyCode:" + replyCode);

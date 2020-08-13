@@ -23,7 +23,6 @@ public class MQSender {
     RedisService redisService;
 
 
-
     public void sendMiaoshaMessage(MiaoshaMessage mm) {
         String msg = RedisService.beanToString(mm);
         CorrelationData correlationData = gencorrelationData();
@@ -58,17 +57,15 @@ public class MQSender {
         return correlationData;
     }
 
-
-
-//    public void sendStrMessage(String msg) {
-////        CorrelationData correlationData = gencorrelationData();
-////        System.out.println("分配ID：" + correlationData.getId());
-////        System.out.println("发送消息");
-////        rabbitTemplate.convertAndSend(MQConfig.MIAOSHA_EXCHANGE, MQConfig.MIAOSHA_ROUTING_KEY, msg, correlationData);
-//////        rabbitTemplate.convertAndSend("noexist", MQConfig.MIAOSHA_ROUTING_KEY, msg, correlationData);
-////    }
-////
-
+    // 测试用
+    public void sendStrMessage(String msg) {
+        CorrelationData correlationData = gencorrelationData();
+//        System.out.println("分配ID：" + correlationData.getId());
+//        System.out.println("发送消息");
+        rabbitTemplate.convertAndSend(MQConfig.DEAD_EXCHANGE, MQConfig.DEAD_MSG_QUEUE, msg, correlationData);
+////        rabbitTemplate.convertAndSend("noexist", MQConfig.MIAOSHA_ROUTING_KEY, msg, correlationData);
+    }
+//
 
 
 }
