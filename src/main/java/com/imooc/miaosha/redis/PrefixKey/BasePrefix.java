@@ -24,4 +24,8 @@ public abstract class BasePrefix implements KeyPrefix{
 		return className+":" + prefix;
 	}
 
+	public String getSimPrefix(){
+		return prefix;
+	}
+
 }

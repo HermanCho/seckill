@@ -1,12 +1,5 @@
 package com.imooc.miaosha.service;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import com.imooc.miaosha.dao.MiaoshaUserDao;
 import com.imooc.miaosha.domain.MiaoshaUser;
 import com.imooc.miaosha.exception.GlobalException;
@@ -16,6 +9,12 @@ import com.imooc.miaosha.result.CodeMsg;
 import com.imooc.miaosha.util.MD5Util;
 import com.imooc.miaosha.util.UUIDUtil;
 import com.imooc.miaosha.vo.LoginVo;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
 
 @Service
 public class MiaoshaUserService {
@@ -103,6 +102,7 @@ public class MiaoshaUserService {
     private void addCookie(HttpServletResponse response, String token, MiaoshaUser user) {
         redisService.set(MiaoshaUserKey.token, token, user);
         Cookie cookie = new Cookie(COOKI_NAME_TOKEN, token);
+        // 注意这里用的是key的有效时间，我们定义0是永不过期，但对此处0就是直接过期，cookie无效
         cookie.setMaxAge(MiaoshaUserKey.token.expireSeconds());
         cookie.setPath("/");
         response.addCookie(cookie);

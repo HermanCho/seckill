@@ -1,12 +1,11 @@
 package com.imooc.miaosha.exception;
 
 import com.alibaba.fastjson.JSON;
-import com.imooc.miaosha.redis.PrefixKey.GoodsKey;
 import com.imooc.miaosha.redis.RedisService;
 import com.imooc.miaosha.result.CodeMsg;
 import com.imooc.miaosha.result.Result;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -17,6 +16,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.OutputStream;
 import java.util.List;
 
+@Slf4j
 @ControllerAdvice
 @ResponseBody
 public class GlobalExceptionHandler {
@@ -44,15 +44,8 @@ public class GlobalExceptionHandler {
         }
     }
 
-    @ExceptionHandler(value = DuplicateKeyException.class)
-    public Result<String> DuplicateKeyExceptionHandler(HttpServletResponse response, Exception e) {
-        DuplicateKeyException ex = (DuplicateKeyException) e;
-        int goodsId = Integer.parseInt(ex.getMessage());
-        // 补偿
-        redisService.incr(GoodsKey.getMiaoshaGoodsStock, "" + goodsId);
-        return Result.error(CodeMsg.REPEATE_MIAOSHA);
 
-    }
+
 
 
     private void render(HttpServletResponse response, CodeMsg cm) throws Exception {

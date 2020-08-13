@@ -2,6 +2,8 @@ package com.imooc.miaosha.redis;
 
 import com.alibaba.fastjson.JSON;
 import com.imooc.miaosha.redis.PrefixKey.KeyPrefix;
+import com.imooc.miaosha.redis.PrefixKey.MiaoshaKey;
+import com.imooc.miaosha.redis.PrefixKey.OrderKey;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
@@ -61,6 +63,58 @@ public class RedisService {
             returnToPool(jedis);
         }
     }
+
+
+    //////////////////////////////
+
+    /***
+      * @Description:  不存在则创建。
+     *                  不是作分布式锁使用，因此无需设置超时时间等
+      * @Author: hermanCho
+      * @Date: 2020-08-12
+      * @Param prefix:
+     * @Param key:
+     * @Param value:
+      * @return: boolean  true代表新值设置成功
+      **/
+
+    public <T> boolean setnx(KeyPrefix prefix, String key, T value) {
+        Jedis jedis = null;
+        try {
+            jedis = jedisPool.getResource();
+            String str = beanToString(value);
+            if (str == null || str.length() <= 0) {
+                return false;
+            }
+            //生成真正的key
+            String realKey = prefix.getPrefix() + key;
+
+            Long res = jedis.setnx(realKey,str);
+
+            return res == 1;
+        } finally {
+            returnToPool(jedis);
+        }
+    }
+
+
+    public <T> T getSet(KeyPrefix prefix, String key, T value,Class<T> clazz) {
+        Jedis jedis = null;
+        try {
+            jedis = jedisPool.getResource();
+            String realKey = prefix.getPrefix() + key;
+
+            String val = beanToString(value);
+            String oldVal = jedis.getSet(realKey,val);
+            T t = stringToBean(oldVal, clazz);
+
+            return t;
+        } finally {
+            returnToPool(jedis);
+        }
+    }
+
+    /////////////////////////////
 
     /**
      * 判断key是否存在
@@ -123,6 +177,11 @@ public class RedisService {
         }
     }
 
+    /**
+     * 删除： *prefix* 的所有key
+     * @param prefix
+     * @return
+     */
     public boolean delete(KeyPrefix prefix) {
         if (prefix == null) {
             return false;
@@ -230,7 +289,7 @@ public class RedisService {
             String realKey = prefix.getPrefix() + key;
             Long deadTimeLine = System.currentTimeMillis() + lockWaitTime;
 
-            // 自旋
+            // 关键是自旋，用的就是setnx而已。
             for (; ; ) {
 //                PX：key过期时间单位，PX:毫秒,EX：秒
                 String result = jedis.set(realKey, value, "NX", "PX", expireTime);
@@ -280,6 +339,16 @@ public class RedisService {
             returnToPool(jedis);
         }
         return false;
+    }
+
+    public void reset(){
+        // 调用的是重载了的方法，删除固定前缀的所有key
+        this.delete(OrderKey.getMiaoshaOrderByUidGid);
+        this.delete(MiaoshaKey.isGoodsOver);
+
+        this.delete(MiaoshaKey.getMiaoshaMessage);
+        this.delete(MiaoshaKey.getResendCount);
+        this.delete(MiaoshaKey.robRedisStock);
     }
 
 }

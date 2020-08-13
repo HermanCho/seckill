@@ -2,14 +2,13 @@ package com.imooc.miaosha.service;
 
 import com.imooc.miaosha.domain.MiaoshaOrder;
 import com.imooc.miaosha.domain.MiaoshaUser;
-import com.imooc.miaosha.domain.OrderInfo;
 import com.imooc.miaosha.redis.PrefixKey.MiaoshaKey;
 import com.imooc.miaosha.redis.RedisService;
 import com.imooc.miaosha.util.MD5Util;
 import com.imooc.miaosha.util.UUIDUtil;
 import com.imooc.miaosha.vo.GoodsVo;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,9 +19,11 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.Random;
 
+@Slf4j
 @SuppressWarnings("restriction")
 @Service
 public class MiaoshaService {
+
 
     @Autowired
     GoodsService goodsService;
@@ -33,27 +34,22 @@ public class MiaoshaService {
     @Autowired
     RedisService redisService;
 
+    @Autowired
+    ErrorMsgService errorMsgService;
+
     @Transactional
-    public OrderInfo miaosha(MiaoshaUser user, GoodsVo goods) {
+    public void miaosha(MiaoshaUser user, GoodsVo goods) {
         //减库存 下订单 写入秒杀订单
+        // 或者顺序调换，先下订单，再减库存。这样在订单重复的时候，不用回滚减库存的
         boolean success = goodsService.reduceStockWithPessimisticLock(goods);
-
+        // TODO: 2020-08-07  这里success应该也可以省略?
         if (success) {
-            //order_info maiosha_order
-            try {
-                OrderInfo orderInfo = orderService.createOrder(user, goods);
-                return orderInfo;
-            }catch (DuplicateKeyException e){
-                // 库存补充
-                DuplicateKeyException dk = new DuplicateKeyException(String.valueOf(goods.getId()));
-                throw  dk;
-            }
-
+            orderService.createOrder(user, goods);
         } else {
             setGoodsOver(goods.getId());
-            return null;
         }
     }
+
 
     public long getMiaoshaResult(Long userId, long goodsId) {
         MiaoshaOrder order = orderService.getMiaoshaOrderByUserIdGoodsId(userId, goodsId);
@@ -70,6 +66,7 @@ public class MiaoshaService {
     }
 
     private void setGoodsOver(Long goodsId) {
+        log.warn("设置秒杀结束，也不应该出现？");
         redisService.set(MiaoshaKey.isGoodsOver, "" + goodsId, true);
     }
 
@@ -77,9 +74,12 @@ public class MiaoshaService {
         return redisService.exists(MiaoshaKey.isGoodsOver, "" + goodsId);
     }
 
+
+
     public void reset(List<GoodsVo> goodsList) {
         goodsService.resetStock(goodsList);
         orderService.deleteOrders();
+//        errorMsgService.resetErrorMsg();
     }
 
     public boolean checkPath(MiaoshaUser user, long goodsId, String path) {

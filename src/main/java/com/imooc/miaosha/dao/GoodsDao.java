@@ -11,20 +11,19 @@ import java.util.List;
 
 @Mapper
 public interface GoodsDao {
-	
-	@Select("select g.*,mg.stock_count, mg.start_date, mg.end_date,mg.miaosha_price from miaosha_goods mg left join goods g on mg.goods_id = g.id")
-	public List<GoodsVo> listGoodsVo();
 
-	@Select("select g.*,mg.stock_count, mg.start_date, mg.end_date,mg.miaosha_price from miaosha_goods mg left join goods g on mg.goods_id = g.id where g.id = #{goodsId}")
-	public GoodsVo getGoodsVoByGoodsId(@Param("goodsId")long goodsId);
+    @Select("select g.*,mg.stock_count, mg.start_date, mg.end_date,mg.miaosha_price from miaosha_goods mg left join goods g on mg.goods_id = g.id")
+    public List<GoodsVo> listGoodsVo();
 
-	// 利用update的排它性质 ，限制处理>0
-	@Update("update miaosha_goods set stock_count = stock_count - 1 where goods_id = #{goodsId} and stock_count > 0")
-	public int reduceStockWithPessimisticLock(MiaoshaGoods g);
+    @Select("select g.*,mg.stock_count, mg.start_date, mg.end_date,mg.miaosha_price from miaosha_goods mg left join goods g on mg.goods_id = g.id where g.id = #{goodsId}")
+    public GoodsVo getGoodsVoByGoodsId(@Param("goodsId") long goodsId);
+
+    // 利用update的排它性质 ，限制处理>0
+    @Update("update miaosha_goods set stock_count = stock_count - 1 where goods_id = #{goodsId} and stock_count > 0")
+    public int reduceStockWithPessimisticLock(MiaoshaGoods g);
 
 
+    @Update("update miaosha_goods set stock_count = #{stockCount} where goods_id = #{goodsId}")
+    public int resetStock(MiaoshaGoods g);
 
-	@Update("update miaosha_goods set stock_count = #{stockCount} where goods_id = #{goodsId}")
-	public int resetStock(MiaoshaGoods g);
-	
 }

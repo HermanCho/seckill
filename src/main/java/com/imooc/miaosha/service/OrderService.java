@@ -1,11 +1,5 @@
 package com.imooc.miaosha.service;
 
-import java.util.Date;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.imooc.miaosha.dao.OrderDao;
 import com.imooc.miaosha.domain.MiaoshaOrder;
 import com.imooc.miaosha.domain.MiaoshaUser;
@@ -13,6 +7,11 @@ import com.imooc.miaosha.domain.OrderInfo;
 import com.imooc.miaosha.redis.PrefixKey.OrderKey;
 import com.imooc.miaosha.redis.RedisService;
 import com.imooc.miaosha.vo.GoodsVo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Date;
 
 @Service
 public class OrderService {
@@ -33,6 +32,10 @@ public class OrderService {
 	}
 	
 
+	//必须为nested , 这样父事务捕获到了这里的异常，才不会回滚。
+	// 如果是默认的required，即使捕获了，也会回滚
+	// 当然也可以选择在本方法内捕获，并修改返回值为boolean，上层根据结果处理
+//	@Transactional(propagation = Propagation.NESTED)
 	@Transactional
 	public OrderInfo createOrder(MiaoshaUser user, GoodsVo goods) {
 		OrderInfo orderInfo = new OrderInfo();
