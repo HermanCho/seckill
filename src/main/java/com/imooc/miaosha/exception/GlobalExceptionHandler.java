@@ -25,9 +25,9 @@ public class GlobalExceptionHandler {
     RedisService redisService;
 
     @ExceptionHandler(value = Exception.class)
-//    public Result<String> exceptionHandler(HttpServletRequest request, Exception e) {
     public Result<String> exceptionHandler(HttpServletResponse response, Exception e) {
-        e.printStackTrace();
+//        e.printStackTrace();
+        System.out.println("捕获到异常" + e.getClass());
         if (e instanceof GlobalException) {
             GlobalException ex = (GlobalException) e;
 //            render(response, ex.getCm());
@@ -43,9 +43,6 @@ public class GlobalExceptionHandler {
             return Result.error(CodeMsg.SERVER_ERROR);
         }
     }
-
-
-
 
 
     private void render(HttpServletResponse response, CodeMsg cm) throws Exception {

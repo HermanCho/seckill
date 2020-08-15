@@ -1,7 +1,14 @@
 package com.imooc.miaosha.redis.PrefixKey;
 
 public abstract class BasePrefix implements KeyPrefix{
-	
+
+	/***
+	  * @Description: 单位:秒s ，0代表永不过期
+	  * @Author: hermanCho
+	  * @Date: 2020-08-15
+	  * @Param null:
+	  * @return: null
+	  **/
 	private int expireSeconds;
 	
 	private String prefix;

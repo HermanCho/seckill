@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -60,15 +61,18 @@ public class MQReceiver {
     @RabbitListener(queues = MQConfig.DEAD_MSG_QUEUE)
     @RabbitHandler
     public void receiveDeadMsg(String msg, Channel channel, Message messages) throws Exception {
-        System.out.println("收到消息:   " + msg);
+        System.out.println("死信队列收到消息:   " + msg);
+        int i = 1 / 0;
         try {
             MessageProperties messageProperties = messages.getMessageProperties();
-            System.out.println(messageProperties.getDeliveryTag());
-            System.out.println(messageProperties.toString());
+//            System.out.println(messageProperties.getDeliveryTag());
 //            channel.basicAck(messages.getMessageProperties().getDeliveryTag(), false);
         } catch (Exception e) {
             channel.basicNack(messages.getMessageProperties().getDeliveryTag(), false, false);
         }
+//        finally {
+//            channel.basicNack(messages.getMessageProperties().getDeliveryTag(), false, true);
+//        }
     }
 
     @Autowired
@@ -109,6 +113,8 @@ public class MQReceiver {
         // try catch，catch要用，先声明
         MiaoshaMessage mm = null;
         MiaoshaUser user = null;
+        // 用于异常超限时，判断秒杀是否完成，进而决定是否补充库存
+        boolean miaoshaSuccess = false;
         try {
             mm = RedisService.stringToBean(message, MiaoshaMessage.class);
             user = mm.getUser();
@@ -123,8 +129,10 @@ public class MQReceiver {
             int stock = goods.getStockCount();
 
             if (stock <= 0) {
+
+                ackAndsetMsgConsumed(channel, messages);
+                // 测试用，这个好像没出现过
                 String cause = "出队查询库存<=0，库存数量:" + stock;
-                channel.basicNack(messages.getMessageProperties().getDeliveryTag(), false, false);
                 logErrorMsg(correlatonId, mm, cause);
                 return;
             }
@@ -135,18 +143,25 @@ public class MQReceiver {
                 // 如上文所说，这里要么就整个if不要，要么就进行补偿。不incr补偿直接返回是错误的。
                 log.warn(user.getId() + "已买到了" + goodsId + ",进行库存补充");
                 redisService.incr(GoodsKey.getMiaoshaGoodsStock, "" + goodsId);
-            } else {
-                miaoshaService.miaosha(user, goods);
+
+                ackAndsetMsgConsumed(channel, messages);
+                return;
             }
-            channel.basicAck(messages.getMessageProperties().getDeliveryTag(), false);
-            setMsgConsumed(correlatonId);
+            // else可有可无，上面已经return了。更好理解一点。
+            else {
+                miaoshaService.miaosha(user, goods);
+                miaoshaSuccess = true;
+
+                ackAndsetMsgConsumed(channel, messages);
+            }
+
         } catch (DuplicateKeyException e) {
             log.warn("订单重复了:" + e.getMessage());
             // 进行库存补偿
             redisService.incr(GoodsKey.getMiaoshaGoodsStock, "" + mm.getGoodsId());
             // ack，认为此时已处理错误，消息也算消费"成功"
-            channel.basicAck(messages.getMessageProperties().getDeliveryTag(), false);
-            setMsgConsumed(correlatonId);
+            ackAndsetMsgConsumed(channel, messages);
+
         } catch (Exception e) {
             // 用手动模式的时候，标准只有确认，而重试超限抛的异常是无法被catch，也无法被全局处理的。
             // 因此方案有两种： 1:换回auto，重试超限直接死信 2.手动记录异常的次数，超了Nack，否则throw
@@ -161,6 +176,15 @@ public class MQReceiver {
                 errorLogMap.put(correlatonId, deadTime + 1);
                 throw e;
             } else {
+                // 消费失败，进行库存补偿
+                if(miaoshaSuccess){
+                    System.out.println("补库存");
+                    redisService.incr(GoodsKey.getMiaoshaGoodsStock, "" + mm.getGoodsId());
+                }
+
+                // 别忘了标记已消费该消息
+                ackAndsetMsgConsumed(channel, messages);
+
                 //重回次数用完了，requeue = false
                 channel.basicNack(messages.getMessageProperties().getDeliveryTag(), false, false);
                 String cause = "重试超限,异常：" + e.getClass();
@@ -172,6 +196,37 @@ public class MQReceiver {
             }
         }
     }
+
+
+//    @RabbitHandler
+//    @RabbitListener(queues = MQConfig.MIAOSHA_QUEUE)
+//    public void receive(String message, Channel channel, Message messages) throws Exception {
+//        // try住整个代码，防止漏异常。如果catch需要的try中的变量，则提前声明就好了
+//        try {
+//            // 消息幂等性的处理
+//            String correlatonId = messages.getMessageProperties().getCorrelationId();
+//            //根据correlationId判断消息是否被消费过
+//            if (消息已经被消费过) {
+//                return;
+//            }
+//            if (库存不足) {
+//                return;
+//            }
+//            if (已经秒杀到) {// 重复下单
+//                补充库存
+//                return;
+//            }
+//
+//            //进行原子操作：1.库存减1，2.下订单，3.写入秒杀订单--->是一个事务
+//            miaoshaService.miaosha(user, goodsvo);
+//        } catch (DuplicateKeyException e) {
+//            补充库存
+//        } catch (Exception e) {
+//            if(重试超出限制){
+//                补充库存
+//            }
+//        }
+//    }
 
 
     /***
@@ -194,9 +249,12 @@ public class MQReceiver {
     }
 
 
-    private void setMsgConsumed(String correlationId) {
-        redisService.set(MiaoshaKey.isConsumed, "" + correlationId, true);
+    private void ackAndsetMsgConsumed(Channel channel, Message messages) throws IOException {
+        String correlatonId = messages.getMessageProperties().getCorrelationId();
+        channel.basicAck(messages.getMessageProperties().getDeliveryTag(), false);
+        redisService.set(MiaoshaKey.isConsumed, correlatonId, true);
     }
+
 
     private boolean getMsgConsumed(String correlationId) {
         return redisService.exists(MiaoshaKey.isConsumed, "" + correlationId);

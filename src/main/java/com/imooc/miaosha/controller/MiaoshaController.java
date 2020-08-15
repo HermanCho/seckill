@@ -101,7 +101,7 @@ public class MiaoshaController implements InitializingBean {
     public Result<Boolean> reset() {
         List<GoodsVo> goodsList = goodsService.listGoodsVo();
         for (GoodsVo goods : goodsList) {
-            int stockCount = 1;
+            int stockCount = 100;
             goods.setStockCount(stockCount);
             redisService.set(GoodsKey.getMiaoshaGoodsStock, "" + goods.getId(), stockCount);
             localOverMap.put(goods.getId(), false);
@@ -117,7 +117,7 @@ public class MiaoshaController implements InitializingBean {
      * 5000 * 10
      * QPS: 2114
      */
-//    @RequestMapping(value = "/{path}/do_miaosha", method = RequestMethod.POST)
+//    @RequestMapping(value = "/{path}/do_miaosha")
     @RequestMapping(value = {"/do_miaosha", "/{path}/do_miaosha"})
     @ResponseBody
     public Result<Integer> miaosha(Model model, MiaoshaUser user,
@@ -169,6 +169,7 @@ public class MiaoshaController implements InitializingBean {
             System.out.println("秒杀商品卖完了，设置为结束");
             return Result.error(CodeMsg.MIAO_SHA_OVER);
         }
+
 
         System.out.println(user.getId() + "抢到redis，商品" + goodsId + "，还剩" + stock);
 

@@ -32,7 +32,7 @@ public class CodeMsg {
 	public static CodeMsg REPEATE_MIAOSHA = new CodeMsg(500501, "不能重复秒杀");
 	public static CodeMsg MIAOSHA_FAIL = new CodeMsg(500502, "秒杀失败");
 
-	public static CodeMsg MIAOSHA_LIMIT = new CodeMsg(500503, "秒杀太频繁，请等待结果");
+	public static CodeMsg MIAOSHA_LIMIT = new CodeMsg(500503, "已请求过，请等待结果");
 
 	
 	private CodeMsg( ) {

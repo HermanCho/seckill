@@ -65,57 +65,6 @@ public class RedisService {
     }
 
 
-    //////////////////////////////
-
-    /***
-      * @Description:  不存在则创建。
-     *                  不是作分布式锁使用，因此无需设置超时时间等
-      * @Author: hermanCho
-      * @Date: 2020-08-12
-      * @Param prefix:
-     * @Param key:
-     * @Param value:
-      * @return: boolean  true代表新值设置成功
-      **/
-
-    public <T> boolean setnx(KeyPrefix prefix, String key, T value) {
-        Jedis jedis = null;
-        try {
-            jedis = jedisPool.getResource();
-            String str = beanToString(value);
-            if (str == null || str.length() <= 0) {
-                return false;
-            }
-            //生成真正的key
-            String realKey = prefix.getPrefix() + key;
-
-            Long res = jedis.setnx(realKey,str);
-
-            return res == 1;
-        } finally {
-            returnToPool(jedis);
-        }
-    }
-
-
-    public <T> T getSet(KeyPrefix prefix, String key, T value,Class<T> clazz) {
-        Jedis jedis = null;
-        try {
-            jedis = jedisPool.getResource();
-            String realKey = prefix.getPrefix() + key;
-
-            String val = beanToString(value);
-            String oldVal = jedis.getSet(realKey,val);
-            T t = stringToBean(oldVal, clazz);
-
-            return t;
-        } finally {
-            returnToPool(jedis);
-        }
-    }
-
-    /////////////////////////////
-
     /**
      * 判断key是否存在
      */
@@ -269,7 +218,71 @@ public class RedisService {
         }
     }
 
-    ///////////////////////////////////////
+    //############## 分界线 ，上面是原有的，下面的添加的#######################
+
+    public void reset(){
+        // 调用的是重载了的方法，删除固定前缀的所有key
+        this.delete(OrderKey.getMiaoshaOrderByUidGid);
+        this.delete(MiaoshaKey.isGoodsOver);
+
+        this.delete(MiaoshaKey.getMiaoshaMessage);
+        this.delete(MiaoshaKey.getResendCount);
+        this.delete(MiaoshaKey.robRedisStock);
+    }
+
+
+
+
+    /***
+     * @Description:  不存在则创建。
+     *                  不是作分布式锁使用，因此无需设置超时时间等
+     * @Author: hermanCho
+     * @Date: 2020-08-12
+     * @Param prefix:
+     * @Param key:
+     * @Param value:
+     * @return: boolean  true代表新值设置成功
+     **/
+
+    public <T> boolean setnx(KeyPrefix prefix, String key, T value) {
+        Jedis jedis = null;
+        try {
+            jedis = jedisPool.getResource();
+            String str = beanToString(value);
+            if (str == null || str.length() <= 0) {
+                return false;
+            }
+            //生成真正的key
+            String realKey = prefix.getPrefix() + key;
+
+            Long res = jedis.setnx(realKey,str);
+
+            return res == 1;
+        } finally {
+            returnToPool(jedis);
+        }
+    }
+
+    public <T> T getSet(KeyPrefix prefix, String key, T value,Class<T> clazz) {
+        Jedis jedis = null;
+        try {
+            jedis = jedisPool.getResource();
+            String realKey = prefix.getPrefix() + key;
+
+            String val = beanToString(value);
+            String oldVal = jedis.getSet(realKey,val);
+            T t = stringToBean(oldVal, clazz);
+
+            return t;
+        } finally {
+            returnToPool(jedis);
+        }
+    }
+
+
+
+
+    //######################## 分界线，↓分布式锁相关，项目中没用上 #############################
 
 
     /**
@@ -341,15 +354,10 @@ public class RedisService {
         return false;
     }
 
-    public void reset(){
-        // 调用的是重载了的方法，删除固定前缀的所有key
-        this.delete(OrderKey.getMiaoshaOrderByUidGid);
-        this.delete(MiaoshaKey.isGoodsOver);
 
-        this.delete(MiaoshaKey.getMiaoshaMessage);
-        this.delete(MiaoshaKey.getResendCount);
-        this.delete(MiaoshaKey.robRedisStock);
-    }
+
+
+
 
 }
 

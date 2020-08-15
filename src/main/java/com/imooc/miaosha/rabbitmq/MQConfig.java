@@ -119,8 +119,6 @@ public class MQConfig {
         return rabbitTemplate;
     }
 
-    @Autowired
-    ErrorMsgDao errorMsgDao;
 
     @Bean
     /***
@@ -133,14 +131,17 @@ public class MQConfig {
         RabbitTemplate.ConfirmCallback confirmCallback = new RabbitTemplate.ConfirmCallback() {
             @Override
             public void confirm(CorrelationData correlationData, boolean ack, String cause) {
-//                log.info("---------触发confirm-----------");
+                log.info("---------触发confirm-----------");
 //                System.out.println("id：" + correlationData.getId());
 //                System.out.println("  ack：" + ack);
 //                System.out.println("cause：" + cause);
 
                 // 成功，删除记录的key
                 if (ack) {
-                    redisService.delete(MiaoshaKey.getMiaoshaMessage, correlationData.getId());
+                    if (correlationData != null) {
+                        redisService.delete(MiaoshaKey.getMiaoshaMessage, correlationData.getId());
+                    }
+
                 } else {
                     // 由定时任务完成，见rabbitmq.FixedTimeTask
                 }
@@ -149,6 +150,10 @@ public class MQConfig {
         };
         return confirmCallback;
     }
+
+
+    @Autowired
+    ErrorMsgDao errorMsgDao;
 
     //
     @Bean
@@ -166,6 +171,13 @@ public class MQConfig {
             public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
 
                 log.error("触发returnCallBack");
+                // 记录入库，其实这时就是运维问题了，这方面就不做库存补偿的了。简单记录一下
+                ErrorMsg errorMsg = new ErrorMsg();
+                errorMsg.setType("发送，消息无法被路由");
+                errorMsg.setCorrelationId(message.getMessageProperties().getCorrelationId());
+                errorMsg.setErrorCause(replyText);
+                errorMsgDao.insert(errorMsg);
+
 //                log.info("message:" + message.toString());
 //                log.info("replyCode:" + replyCode);
 //                log.info("replyText:" + replyText);
@@ -209,6 +221,65 @@ public class MQConfig {
         };
         return messagePostProcessor;
     }
+
+
+    // ----------------------- 分界线，下述代码是消费异常重发的"尝试"代码，没成功 ------------------------------------
+    // ##############################################################################################################
+
+//    @Autowired
+//    RetryTemplate retryTemplate;
+//
+//    @Bean
+//    public RetryListener retryListener() {
+//        return new RetryListener() {
+//            @Override
+//            public <T, E extends Throwable> boolean open(RetryContext context, RetryCallback<T, E> callback) {
+//                System.out.println("aaaa");
+//                return false;
+//            }
+//
+//            @Override
+//            public <T, E extends Throwable> void close(RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
+//                System.out.println("bbb");
+//            }
+//
+//            @Override
+//            public <T, E extends Throwable> void onError(RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
+//                System.out.println("ccc");
+//            }
+//        };
+//    }
+//
+//    @PostConstruct
+//    public void init() {
+//        retryTemplate.registerListener(retryListener());
+//    }
+//
+//
+//    @Bean
+//    public RabbitListenerErrorHandler rabbitListenerErrorHandler() {
+//        return new RabbitListenerErrorHandler() {
+//
+//            @Override
+//            public Object handleError(Message amqpMessage,
+//                                      org.springframework.messaging.Message<?> message,
+//                                      ListenerExecutionFailedException exception) throws Exception {
+//                MessageHeaders messageHeaders = message.getHeaders();
+//                // 通过debug找到的这个key字段，可以获取消费者中的channel，进而响应
+//                Channel channel = messageHeaders.get("amqp_channel", Channel.class);
+//                channel.basicAck(amqpMessage.getMessageProperties().getDeliveryTag(), false);
+//                // 或者return null;
+//                throw exception;
+//            }
+//        };
+//    }
+//
+//
+//    @Bean
+//    public MessageRecoverer messageRecoverer(RabbitTemplate rabbitTemplate) {
+//
+//        return new RepublishMessageRecoverer(rabbitTemplate, DEAD_EXCHANGE);
+//    }
 
 
 }

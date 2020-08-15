@@ -37,15 +37,27 @@ public class MiaoshaService {
     @Autowired
     ErrorMsgService errorMsgService;
 
+    /***
+     * @Description: 减库存 下订单 写入秒杀订单。 事务保证原子性
+     *           优化：先下订单，再减库存。这样在订单重复的时候，不用回滚库存的数据库
+     * @Author: hermanCho
+     * @Date: 2020-08-14
+     * @Param user:
+     * @Param goods:
+     * @return: void
+     **/
     @Transactional
     public void miaosha(MiaoshaUser user, GoodsVo goods) {
-        //减库存 下订单 写入秒杀订单
-        // 或者顺序调换，先下订单，再减库存。这样在订单重复的时候，不用回滚减库存的
-        boolean success = goodsService.reduceStockWithPessimisticLock(goods);
-        // TODO: 2020-08-07  这里success应该也可以省略?
-        if (success) {
-            orderService.createOrder(user, goods);
-        } else {
+
+        orderService.createOrder(user, goods);
+        // 原做法：
+//        boolean success = goodsService.reduceStockWithPessimisticLock(goods);
+
+        // 但其实success 必为true, setGoodsOver 永远不会被触发。
+        goodsService.reduceStockWithPessimisticLock(goods);
+        int stock = goodsService.getGoodsVoByGoodsId(goods.getId()).getStockCount();
+        // 其实只会 == 0 ，但安全起见，还是<=
+        if (stock <= 0) {
             setGoodsOver(goods.getId());
         }
     }
@@ -57,6 +69,7 @@ public class MiaoshaService {
             return order.getOrderId();
         } else {
             boolean isOver = getGoodsOver(goodsId);
+
             if (isOver) {
                 return -1;
             } else {
@@ -66,14 +79,13 @@ public class MiaoshaService {
     }
 
     private void setGoodsOver(Long goodsId) {
-        log.warn("设置秒杀结束，也不应该出现？");
+//        log.warn("设置秒杀结束，也不应该出现？");
         redisService.set(MiaoshaKey.isGoodsOver, "" + goodsId, true);
     }
 
     private boolean getGoodsOver(long goodsId) {
         return redisService.exists(MiaoshaKey.isGoodsOver, "" + goodsId);
     }
-
 
 
     public void reset(List<GoodsVo> goodsList) {
