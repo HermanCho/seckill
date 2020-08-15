@@ -11,6 +11,14 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+/***
+  * @Description:  压测相关类
+  * @Author: hermanCho
+  * @Date: 2020-08-15
+  * @Param null:
+  * @return: null
+  **/
+
 public class UserUtil {
 
     private static void createUser(int count) throws Exception {
